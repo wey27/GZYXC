@@ -6,125 +6,167 @@
     <title>宣传资料</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: #f0f2f5;
-            color: #333;
-            min-height: 100vh;
-        }
-        .loading {
-            display: flex; align-items: center; justify-content: center;
-            height: 80vh; flex-direction: column; color: #999;
-        }
-        .loading .spinner {
-            width: 32px; height: 32px; margin: 0 auto 12px;
-            border: 3px solid #e0e0e0; border-top-color: #1a73e8;
-            border-radius: 50%; animation: spin 0.8s linear infinite;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+        .loading { display: flex; align-items: center; justify-content: center; height: 80vh; flex-direction: column; color: #999; }
+        .loading .spinner { width: 32px; height: 32px; border: 3px solid #e0e0e0; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .header {
-            background: linear-gradient(135deg, #1a73e8, #0d47a1);
-            color: #fff; padding: 12px 16px; text-align: center; font-weight: 600;
-        }
+        .header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: #fff; padding: 10px 16px; text-align: center; font-weight: 600; font-size: 15px; }
         .list-view { max-width: 640px; margin: 0 auto; padding: 16px; }
         .section-title { font-size: 13px; color: #888; margin: 8px 0 12px; padding-left: 4px; }
         .pdf-list { display: flex; flex-direction: column; gap: 10px; }
-        .pdf-card {
-            background: #fff; border-radius: 10px; padding: 14px 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-            display: flex; align-items: center; gap: 12px;
-            cursor: pointer; text-decoration: none; color: inherit;
-        }
+        .pdf-card { background: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 12px; cursor: pointer; }
         .pdf-card:active { background: #f5f5f5; }
-        .pdf-icon {
-            width: 36px; height: 44px; flex-shrink: 0;
-            background: #e53935; border-radius: 3px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; color: #fff; font-weight: 700;
-        }
+        .pdf-icon { width: 36px; height: 44px; flex-shrink: 0; background: #e53935; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: 700; position: relative; }
+        .pdf-icon::after { content: ''; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 10px 10px 0; border-color: rgba(255,255,255,0.25) #fff #fff rgba(255,255,255,0.25); }
         .pdf-info { flex: 1; min-width: 0; }
         .pdf-name { font-size: 15px; font-weight: 500; }
         .pdf-meta { font-size: 11px; color: #999; margin-top: 3px; }
         .pdf-arrow { color: #ccc; font-size: 18px; flex-shrink: 0; }
         .footer { text-align: center; padding: 24px 16px; font-size: 11px; color: #bbb; }
-        .empty { text-align: center; padding-top: 40vh; color: #999; font-size: 14px; }
+        .empty { text-align: center; padding-top: 35vh; color: #999; font-size: 14px; }
         .empty .icon { font-size: 40px; margin-bottom: 8px; }
+
+        /* PDF viewer */
+        #pdfViewer { display: none; height: calc(100vh - 44px); overflow: auto; background: #525659; }
+        #pdfViewer canvas { display: block; margin: 0 auto; max-width: 100%; }
+        #pdfViewer .page-container { position: relative; margin: 0 auto; }
+        #pdfViewer .page-container + .page-container { margin-top: 8px; }
+        .viewer-header { background: #333; color: #fff; padding: 6px 12px; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+        .viewer-header .back-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 0 4px; }
+        .viewer-header .page-info { margin-left: auto; }
     </style>
 </head>
 <body>
-    <div class="header">📄 宣传资料</div>
-    <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <p>加载中...</p>
+    <!-- 单页模式：文件列表 -->
+    <div id="listMode">
+        <div class="header">📄 宣传资料</div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>加载中...</p>
+        </div>
+        <div id="listView" style="display:none">
+            <div class="list-view">
+                <div class="section-title" id="listTitle">📋 资料列表</div>
+                <div class="pdf-list" id="pdfList"></div>
+            </div>
+            <div class="footer" id="footer">资料持续更新，扫码查看最新版本</div>
+        </div>
     </div>
-    <div id="view"></div>
-    <div class="footer" id="footer" style="display:none">资料持续更新，扫码查看最新版本</div>
 
+    <!-- PDF 阅读器 -->
+    <div id="pdfViewer">
+        <div class="viewer-header">
+            <button class="back-btn" id="backBtn">‹</button>
+            <span id="viewerTitle">预览</span>
+            <span class="page-info" id="pageInfo">1 / 1</span>
+        </div>
+        <div id="pdfContainer"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
-        (async function(){
-            const loading = document.getElementById('loading');
-            const view = document.getElementById('view');
-            const footer = document.getElementById('footer');
-            const RAW = 'https://raw.githubusercontent.com/wey27/GZYXC/main/content/';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+        const RAW = 'https://raw.githubusercontent.com/wey27/GZYXC/main/content/';
+        let pdfFiles = [];
+
+        async function loadFileList() {
             try {
                 const resp = await fetch('content/files.json?_=' + Date.now());
-                // If files.json fails (first build), fallback to fetch PDFs directly
-                let pdfs;
-                if (!resp.ok) {
-                    // No files.json yet – try direct PDF list via API
+                let list;
+                if (resp.ok) {
+                    list = await resp.json();
+                } else {
                     const apiResp = await fetch('https://api.github.com/repos/wey27/GZYXC/contents/content?ref=main');
                     if (!apiResp.ok) throw new Error('load failed');
                     const all = await apiResp.json();
-                    pdfs = all.filter(f => f.name.toLowerCase().endsWith('.pdf'));
-                } else {
-                    const list = await resp.json();
-                    // Fetch actual file sizes
-                    pdfs = list;
+                    list = all.filter(f => f.name.toLowerCase().endsWith('.pdf'));
                 }
-
-                if (!pdfs || pdfs.length === 0) {
-                    loading.innerHTML = '<div class="empty"><div class="icon">📂</div>暂无资料</div>';
+                pdfFiles = list;
+                if (!pdfFiles || pdfFiles.length === 0) {
+                    document.getElementById('loading').innerHTML = '<div class="empty"><div class="icon">📂</div>暂无资料</div>';
                     return;
                 }
-
-                // If only one PDF → redirect directly to it
-                if (pdfs.length === 1) {
-                    const fileName = pdfs[0].name || pdfs[0].file;
-                    window.location.href = RAW + encodeURIComponent(fileName);
+                if (pdfFiles.length === 1) {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('listView').style.display = 'none';
+                    openPDF(pdfFiles[0].name || pdfFiles[0].file);
                     return;
                 }
-
-                // Multiple PDFs → show list
-                view.innerHTML = `
-                    <div class="list-view">
-                        <div class="section-title">📋 共 ${pdfs.length} 份资料</div>
-                        <div class="pdf-list" id="pdfList"></div>
-                    </div>
-                `;
-                footer.style.display = 'block';
-                const listEl = document.getElementById('pdfList');
-                for (const p of pdfs) {
-                    const fileName = p.name || p.file;
-                    const size = p.size ? (p.size/1024).toFixed(0) + 'KB' : '';
-                    const card = document.createElement('a');
-                    card.className = 'pdf-card';
-                    card.href = RAW + encodeURIComponent(fileName);
-                    card.innerHTML = `
-                        <div class="pdf-icon">PDF</div>
-                        <div class="pdf-info">
-                            <div class="pdf-name">${fileName.replace(/\.pdf$/i, '')}</div>
-                            <div class="pdf-meta">${size}</div>
-                        </div>
-                        <div class="pdf-arrow">›</div>
-                    `;
-                    listEl.appendChild(card);
-                }
-                loading.style.display = 'none';
+                renderList();
             } catch(e) {
-                loading.innerHTML = '<div class="empty"><div class="icon">⚠️</div>加载失败，请刷新重试</div>';
+                document.getElementById('loading').innerHTML = '<div class="empty"><div class="icon">⚠️</div>加载失败，请刷新</div>';
             }
-        })();
+        }
+
+        function renderList() {
+            const list = document.getElementById('pdfList');
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('listView').style.display = 'block';
+            document.getElementById('listTitle').textContent = `📋 共 ${pdfFiles.length} 份资料`;
+            list.innerHTML = '';
+            for (const p of pdfFiles) {
+                const name = p.name || p.file;
+                const size = p.size ? (p.size/1024).toFixed(0) + 'KB' : '';
+                const card = document.createElement('div');
+                card.className = 'pdf-card';
+                card.onclick = () => openPDF(name);
+                card.innerHTML = `
+                    <div class="pdf-icon">PDF</div>
+                    <div class="pdf-info">
+                        <div class="pdf-name">${name.replace(/\.pdf$/i, '')}</div>
+                        <div class="pdf-meta">${size}</div>
+                    </div>
+                    <div class="pdf-arrow">›</div>
+                `;
+                list.appendChild(card);
+            }
+        }
+
+        async function openPDF(fileName) {
+            document.getElementById('listMode').style.display = 'none';
+            document.getElementById('pdfViewer').style.display = 'block';
+            document.getElementById('viewerTitle').textContent = fileName.replace(/\.pdf$/i, '');
+            document.getElementById('pdfContainer').innerHTML = '<div class="loading" style="height:60vh"><div class="spinner"></div><p>加载中...</p></div>';
+
+            const url = RAW + encodeURIComponent(fileName);
+            try {
+                const pdf = await pdfjsLib.getDocument(url).promise;
+                const totalPages = pdf.numPages;
+                const container = document.getElementById('pdfContainer');
+                container.innerHTML = '';
+
+                for (let i = 1; i <= totalPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    canvas.style.width = '100%';
+                    canvas.style.height = 'auto';
+
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'page-container';
+                    wrapper.appendChild(canvas);
+                    container.appendChild(wrapper);
+
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                }
+
+                document.getElementById('pageInfo').textContent = `共 ${totalPages} 页`;
+            } catch(e) {
+                document.getElementById('pdfContainer').innerHTML = '<div class="empty"><div class="icon">⚠️</div>加载失败</div>';
+            }
+        }
+
+        document.getElementById('backBtn').onclick = function() {
+            document.getElementById('pdfViewer').style.display = 'none';
+            document.getElementById('listMode').style.display = 'block';
+            document.getElementById('pdfContainer').innerHTML = '';
+        };
+
+        loadFileList();
     </script>
 </body>
 </html>
