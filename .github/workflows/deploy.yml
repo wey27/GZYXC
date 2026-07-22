@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -15,20 +15,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: 生成文件列表
+        run: |
+          echo '[' > content/files.json
+          first=true
+          for f in content/*.pdf content/*.PDF; do
+            [ -f "$f" ] || continue
+            name=$(basename "$f")
+            size=$(stat --printf="%s" "$f" 2>/dev/null || echo 0)
+            if [ "$first" = true ]; then
+              first=false
+            else
+              echo ',' >> content/files.json
+            fi
+            echo "  {\"name\":\"${name}\",\"size\":${size}}" >> content/files.json
+          done
+          echo '' >> content/files.json
+          echo ']' >> content/files.json
+          echo "生成 content/files.json:"
+          cat content/files.json
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
