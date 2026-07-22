@@ -1,0 +1,47 @@
+name: 自动生成本件列表
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["content/**"]
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 生成 files.json
+        run: |
+          echo '[' > files.json
+          first=true
+          for f in content/*.pdf content/*.PDF; do
+            [ -f "$f" ] || continue
+            name=$(basename "$f")
+            display=$(echo "$name" | sed 's/\.pdf$//' | sed 's/\.PDF$//')
+            if [ "$first" = true ]; then
+              first=false
+            else
+              echo ',' >> files.json
+            fi
+            echo "  {\"name\":\"${display}\",\"file\":\"${name}\"}" >> files.json
+          done
+          echo '' >> files.json
+          echo ']' >> files.json
+          echo "files.json 已生成"
+          cat files.json
+
+      - name: 提交 files.json 到 gh-pages
+        run: |
+          git config user.name "自动部署"
+          git config user.email "deploy@github.com"
+          git fetch origin gh-pages 2>/dev/null || true
+          git checkout gh-pages
+          # 把 main 的 content 和 files.json 复制过来
+          git checkout main -- content/ files.json index.html .github/workflows/deploy.yml README.md
+          git add content/ files.json index.html .github/workflows/deploy.yml README.md
+          git diff --cached --quiet || git commit -m "auto: 更新文件列表"
+          git push origin gh-pages
